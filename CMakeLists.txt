@@ -24,12 +24,12 @@ include(PreventInSourceBuilds)
 include(UseCCacheWhenInstalled)
 
 # Figure out the version number from Git
-include(version)
+# include(version)
 
 # Declare the project, its version number and language
 project(
   igraph
-  VERSION ${PACKAGE_VERSION_BASE}
+  VERSION 0.10.8
   DESCRIPTION "A library for creating and manipulating graphs"
   HOMEPAGE_URL https://igraph.org
   LANGUAGES C CXX
