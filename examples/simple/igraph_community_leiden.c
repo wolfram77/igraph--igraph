@@ -22,40 +22,36 @@
 */
 
 #include <igraph.h>
+#include <stddef.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <sys/time.h>
 
-int main(void) {
+
+int main(int argc, char **argv) {
+    char *filename    = argv[1];
+    char *outfilename = argv[2];
+    FILE *file = fopen(filename, "r");
+    FILE *fout = fopen(outfilename, "w");
+
     igraph_t graph;
     igraph_vector_int_t membership;
     igraph_vector_int_t degree;
     igraph_vector_t weights;
-    igraph_integer_t nb_clusters, i;
-    igraph_real_t quality;
+    igraph_integer_t nb_clusters = 0, i = 0;
+    igraph_real_t quality = 0, modularity = 0;
+    struct timeval start, stop;
 
     /* Set default seed to get reproducible results */
     igraph_rng_seed(igraph_rng_default(), 0);
 
     /* Simple unweighted graph */
-    igraph_small(&graph, 10, IGRAPH_UNDIRECTED,
-                 0, 1, 0, 2, 0, 3, 0, 4, 1, 2, 1, 3, 1, 4, 2, 3, 2, 4, 3, 4,
-                 5, 6, 5, 7, 5, 8, 5, 9, 6, 7, 6, 8, 6, 9, 7, 8, 7, 9, 8, 9,
-                 0, 5, -1);
+    printf("Reading graph from %s ...\n", filename);
+    igraph_read_graph_edgelist(&graph, file, 0, 0);  /* Read graph from file. */
+    printf("Read graph with %zu vertices and %zu edges.\n", (size_t) igraph_vcount(&graph), (size_t) igraph_ecount(&graph));
 
-    /* Perform Leiden algorithm using CPM for 1 iteration */
+    /* Initialize membership vector to use for storing communities */
     igraph_vector_int_init(&membership, igraph_vcount(&graph));
-    igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 0, 1, &membership, &nb_clusters, &quality);
-
-    printf("Leiden found %" IGRAPH_PRId " clusters using CPM (resolution parameter 0.05), quality is %.4f.\n", nb_clusters, quality);
-    printf("Membership: ");
-    igraph_vector_int_print(&membership);
-    printf("\n");
-
-    /* Start from existing membership for 10 iterations to improve it further */
-    igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 1, 10, &membership, &nb_clusters, &quality);
-
-    printf("Iterated Leiden, using CPM (resolution parameter 0.05), quality is %.4f.\n", quality);
-    printf("Membership: ");
-    igraph_vector_int_print(&membership);
-    printf("\n");
 
     /* Initialize degree vector to use for optimizing modularity */
     igraph_vector_int_init(&degree, igraph_vcount(&graph));
@@ -66,17 +62,35 @@ int main(void) {
     }
 
     /* Perform Leiden algorithm using modularity until stable iteration */
+    gettimeofday(&start, NULL);
     igraph_community_leiden(&graph, NULL, &weights, 1.0 / (2 * igraph_ecount(&graph)), 0.01, 0, -1, &membership, &nb_clusters, &quality);
+    // igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 0, 1, &membership, &nb_clusters, &quality);
+    // igraph_community_leiden(&graph, NULL, NULL, 0.05, 0.01, 1, 10, &membership, &nb_clusters, &quality);
+    gettimeofday(&stop, NULL);
+    float duration = (stop.tv_sec - start.tv_sec) * 1000.0f + (stop.tv_usec - start.tv_usec) / 1000.0f;
 
     printf("Leiden found %" IGRAPH_PRId " clusters using modularity, quality is %.4f.\n", nb_clusters, quality);
-    printf("Membership: ");
-    igraph_vector_int_print(&membership);
-    printf("\n");
+    printf("Duration: %f ms\n", duration);
+
+    /* Also calculate the modularity of the partition separately */
+    igraph_modularity(
+        &graph, &membership, /* weights= */ NULL, /* resolution = */ 1,
+        /* directed= */ 0, &modularity);
+    printf("Modularity: %f\n", modularity);
+
+    /* Write communities to file */
+    for (i = 0; i < igraph_vcount(&graph); ++i) {
+        fprintf(fout, "%zu %zu\n", (size_t) i, (size_t) VECTOR(membership)[i]);
+    }
+    printf("Written communities to %s\n", outfilename);
 
     igraph_vector_destroy(&weights);
     igraph_vector_int_destroy(&degree);
     igraph_vector_int_destroy(&membership);
     igraph_destroy(&graph);
 
+    /* Close the files */
+    fclose(file);
+    fclose(fout);
     return 0;
 }

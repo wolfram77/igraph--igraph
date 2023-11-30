@@ -1,3 +1,7 @@
+# Generated files
+*.log
+*.csv
+
 *~
 .*.swp
 .dirstamp
