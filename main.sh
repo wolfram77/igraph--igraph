@@ -1,4 +1,14 @@
 #!/usr/bin/env bash
+#SBATCH --nodes=1
+#SBATCH --ntasks=1
+#SBATCH --ntasks-per-node=1
+#SBATCH --cpus-per-task=64
+#SBATCH --exclusive
+#SBATCH --job-name slurm
+#SBATCH --output=slurm.out
+# source scl_source enable gcc-toolset-11
+# module load hpcx-2.7.0/hpcx-ompi
+# module load openmpi/4.1.5
 src="igraph--igraph"
 out="$HOME/Logs/$src$1.log"
 ulimit -s unlimited
@@ -26,11 +36,11 @@ cd ../../..
 
 # Convert graph to edgelist, run igraph, and clean up
 runIgraph() {
-  stdbuf --output=L printf "Converting $1 to $1.el ...\n"          | tee -a "$out"
+  stdbuf --output=L printf "Converting $1 to $1.el ...\n"                      | tee -a "$out"
   lines="$(node process.js header-lines "$1")"
   tail -n +$((lines+1)) "$1" > "$1.el"
-  stdbuf --output=L examples/simple/build/igraph_test "$1.el" 2>&1 | tee -a "$out"
-  stdbuf --output=L printf "\n\n"                                  | tee -a "$out"
+  stdbuf --output=L examples/simple/build/igraph_test "$1.el" "$1.comnty" 2>&1 | tee -a "$out"
+  stdbuf --output=L printf "\n\n"                                              | tee -a "$out"
   rm -rf "$1.el"
 }
 
@@ -52,7 +62,7 @@ runAll() {
   runIgraph "$HOME/Data/kmer_V1r.mtx"
 }
 
-# Run scoda 5 times
+# Run 5 times
 for i in {1..5}; do
   runAll
 done
