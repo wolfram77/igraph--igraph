@@ -61,8 +61,14 @@ int main(int argc, char **argv) {
            igraph_vector_int_max(&membership) + 1, modularity);
 
     printf("Duration: %f ms\n", duration);
-    // printf("Communities membership: ");
-    // igraph_vector_int_print(&membership);
+
+    /* Save the community memberships to a file */
+    printf("Saving community memberships to %s ...\n", argv[2]);
+    FILE *output = fopen(argv[2], "w");
+    for (igraph_integer_t i = 0; i < igraph_vector_int_size(&membership); i++) {
+        fprintf(output, "%ld %ld\n", i, VECTOR(membership)[i]);
+    }
+    fclose(output);
 
     /* Destroy data structures at the end. */
     igraph_vector_int_destroy(&membership);

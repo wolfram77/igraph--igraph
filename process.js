@@ -122,8 +122,8 @@ async function headerLines(pth) {
 // -----------
 
 async function main(cmd, inp, out) {
-  var data = cmd.startsWith('csv')? readLog(inp) : null;
-  if (path.extname(out)==='') cmd += '-dir';
+  var data = cmd.startsWith('csv')? readLog(inp) : '';
+  if (out && path.extname(out)==='') cmd += '-dir';
   switch (cmd) {
     case 'csv':
       var rows = processCsv(data);
