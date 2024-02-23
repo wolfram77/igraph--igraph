@@ -48,7 +48,7 @@ int main(int argc, char **argv) {
     igraph_community_label_propagation(
                 &graph, &membership,
                 /* weights= */ NULL, /* initial= */ NULL, /* fixed= */ NULL,
-                &modularity, IGRAPH_LPA_DOMINANCE);
+                &modularity, IGRAPH_LPA_FAST);
     gettimeofday(&stop, NULL);
     float duration = (stop.tv_sec - start.tv_sec) * 1000.0f + (stop.tv_usec - start.tv_usec) / 1000.0f;
 
@@ -61,8 +61,8 @@ int main(int argc, char **argv) {
     /* Save the community memberships to a file */
     printf("Saving community memberships to %s ...\n", argv[2]);
     FILE *output = fopen(argv[2], "w");
-    for (igraph_integer_t i = 0; i < igraph_vector_int_size(&membership); i++) {
-        fprintf(output, "%ld %ld\n", i, VECTOR(membership)[i]);
+    for (long int i = 0; i < igraph_vector_size(&membership); i++) {
+        fprintf(output, "%ld %ld\n", (long int) i, (long int) VECTOR(membership)[i]);
     }
     fclose(output);
 
